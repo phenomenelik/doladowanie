@@ -9,19 +9,21 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import TimeoutException, WebDriverException
+
 
 debugging = True
 load_dotenv()
 
 PHONE_NUMBER = os.getenv("PHONE_NUMBER")
 EMAIL = os.getenv("EMAIL")
+FIRST_NAME = os.getenv("FIRST_NAME")
+LAST_NAME = os.getenv("LAST_NAME")
 CARD_NUM = os.getenv("CARD_NUM")
 CARD_MONTH = os.getenv("CARD_MONTH")
 CARD_YEAR = os.getenv("CARD_YEAR")
 CARD_CVV = os.getenv("CARD_CVV")
-PREPAID = 30
+TOP_UP = 30
 
 
 script_directory = Path(__file__).resolve().parent
@@ -63,8 +65,47 @@ def enter_phone_and_email(driver):
         phone_number_input.send_keys(PHONE_NUMBER)
         email_input.send_keys(EMAIL)
 
-    time.sleep(1)
+    time.sleep(2)
     next_step_button.click()
+
+
+def choose_top_up_amount(driver):
+    next_step_button = wait_for_element(driver, By.ID, "submit-step-2")
+    top_up_button = wait_for_element(driver, By.XPATH, f"//li[@class='topup-amount topup-{TOP_UP}']")
+    top_up_button.click()
+    time.sleep(1.5)
+    next_step_button.click()
+
+
+def check_required_consents(driver):
+    terms_and_conditions_checkbox = wait_for_element(driver, By.XPATH, "//span[@class='check-label-box'])[3]")
+    service_agreement_checkbox = wait_for_element(driver, By.XPATH, "//label[@for='payment']//span")
+    service_agreement_checkbox = wait_for_element(driver, By.XPATH, "//label[@for='payment']//span")
+    submit_button = wait_for_element(driver, By.ID, "submit-step-3")
+
+    terms_and_conditions_checkbox.click()
+    service_agreement_checkbox.click()
+    submit_button.click()
+
+
+def payment(driver):
+    card_number_input = wait_for_element(driver, By.XPATH, "//label[@for='cardNumber']")
+    first_name_input = wait_for_element(driver, By.XPATH, "//label[@for='firstName']")
+    last_name_input = wait_for_element(driver, By.XPATH, "//label[@for='lastName']")
+    expiration_date_input = wait_for_element(driver, By.ID, "expirationDate")
+    cvv_input = wait_for_element(driver, By.XPATH, "//label[@for='code']")
+    pay_by_card_radiobutton = wait_for_element(driver, By.ID, "payway-radio-CARD")
+    payment_amount_label = wait_for_element(driver, By.XPATH, "//span[text()='30,00 PLN']")
+
+    payment_amount_str = payment_amount_label.getattr("value")
+    # todo try/catch -> ValueError
+    if payment_amount_str == f"{TOP_UP},00 PLN" and pay_by_card_radiobutton:
+        pay_by_card_radiobutton.click()
+        card_number_input.send_keys(CARD_NUM)
+        first_name_input.send_keys(FIRST_NAME)
+        last_name_input.send_keys(LAST_NAME)
+        expiration_date_input.send_keys()
+        cvv_input.send_keys()
 
 
 def main():
