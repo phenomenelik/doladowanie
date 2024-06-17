@@ -23,7 +23,7 @@ CARD_NUM = os.getenv("CARD_NUM")
 CARD_MONTH = os.getenv("CARD_MONTH")
 CARD_YEAR = os.getenv("CARD_YEAR")
 CARD_CVV = os.getenv("CARD_CVV")
-TOP_UP = 30
+TOP_UP = os.getenv("TOP_UP")
 
 
 script_directory = Path(__file__).resolve().parent
@@ -39,7 +39,7 @@ def set_field_to_password(driver, element_id):
     driver.execute_script(f"document.getElementById('{element_id}').type = 'password'")
 
 
-def wait_for_element(driver, by, element_identifier, timeout=5):
+def wait_for_element(driver, by, element_identifier, timeout=10):
     try:
         element_present = EC.presence_of_element_located((by, element_identifier))
         WebDriverWait(driver, timeout).until(element_present)
@@ -65,7 +65,7 @@ def enter_phone_and_email(driver):
         phone_number_input.send_keys(PHONE_NUMBER)
         email_input.send_keys(EMAIL)
 
-    time.sleep(2)
+    time.sleep(4) # todo dodac legit waitera
     next_step_button.click()
 
 
@@ -78,7 +78,7 @@ def choose_top_up_amount(driver):
 
 
 def check_required_consents(driver):
-    terms_and_conditions_checkbox = wait_for_element(driver, By.XPATH, "//span[@class='check-label-box'])[3]")
+    terms_and_conditions_checkbox = wait_for_element(driver, By.XPATH, "(//span[@class='check-label-box'])[3]")
     service_agreement_checkbox = wait_for_element(driver, By.XPATH, "//label[@for='payment']//span")
     service_agreement_checkbox = wait_for_element(driver, By.XPATH, "//label[@for='payment']//span")
     submit_button = wait_for_element(driver, By.ID, "submit-step-3")
@@ -88,24 +88,34 @@ def check_required_consents(driver):
     submit_button.click()
 
 
-def payment(driver):
-    card_number_input = wait_for_element(driver, By.XPATH, "//label[@for='cardNumber']")
-    first_name_input = wait_for_element(driver, By.XPATH, "//label[@for='firstName']")
-    last_name_input = wait_for_element(driver, By.XPATH, "//label[@for='lastName']")
-    expiration_date_input = wait_for_element(driver, By.ID, "expirationDate")
-    cvv_input = wait_for_element(driver, By.XPATH, "//label[@for='code']")
+def payment_form(driver):
     pay_by_card_radiobutton = wait_for_element(driver, By.ID, "payway-radio-CARD")
-    payment_amount_label = wait_for_element(driver, By.XPATH, "//span[text()='30,00 PLN']")
+    pay_by_card_radiobutton.click()
+    driver.switch_to.frame(driver.find_element(By.ID, 'iframeCards'))
+    card_number_input = wait_for_element(driver, By.ID, "cardNumber")
+    first_name_input = wait_for_element(driver, By.ID, "firstName")
+    last_name_input = wait_for_element(driver, By.ID, "lastName")
+    expiration_date_input = wait_for_element(driver, By.ID, "expirationDate")
+    cvv_input = wait_for_element(driver, By.ID, "code")
 
-    payment_amount_str = payment_amount_label.getattr("value")
-    # todo try/catch -> ValueError
-    if payment_amount_str == f"{TOP_UP},00 PLN" and pay_by_card_radiobutton:
-        pay_by_card_radiobutton.click()
-        card_number_input.send_keys(CARD_NUM)
-        first_name_input.send_keys(FIRST_NAME)
-        last_name_input.send_keys(LAST_NAME)
-        expiration_date_input.send_keys()
-        cvv_input.send_keys()
+    # todo ładniej ograć
+    set_field_to_password(driver, "cardNumber")
+    set_field_to_password(driver, "firstName")
+    set_field_to_password(driver, "lastName")
+    set_field_to_password(driver, "expirationDate")
+    set_field_to_password(driver, "code")
+    card_number_input.send_keys(CARD_NUM)
+    first_name_input.send_keys(FIRST_NAME)
+    last_name_input.send_keys(LAST_NAME)
+    expiration_date_input.send_keys(CARD_MONTH + CARD_YEAR)
+    cvv_input.send_keys(CARD_CVV)
+    driver.switch_to.default_content()
+    pay_button = wait_for_element(driver, By.XPATH, "//span[text()='Płacę']")
+    pay_button.click()
+
+
+def payment_confirmation(driver):
+    pass
 
 
 def main():
@@ -114,6 +124,9 @@ def main():
 
     try:
         enter_phone_and_email(driver)
+        choose_top_up_amount(driver)
+        check_required_consents(driver)
+        payment_form(driver)
     except WebDriverException as e:
         print(f"General webdriver error {e}")
     finally:
@@ -123,3 +136,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+ 
