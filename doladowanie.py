@@ -25,13 +25,7 @@ CARD_YEAR = os.getenv("CARD_YEAR")
 CARD_CVV = os.getenv("CARD_CVV")
 TOP_UP = os.getenv("TOP_UP")
 
-card_data = {
-    "firstName": FIRST_NAME,
-    "lastName": LAST_NAME,
-    "cardNumber": CARD_NUM,
-    "expirationDate": CARD_MONTH + CARD_YEAR,
-    "code": CARD_CVV
-}
+card_data = ["firstName", "lastName", "cardNumber", "expirationDate", "code"]
 
 script_directory = Path(__file__).resolve().parent
 driver_path = script_directory.joinpath("driver", "chromedriver")
@@ -107,7 +101,7 @@ def payment_form(driver):
     expiration_date_input = wait_for_element(driver, By.ID, "expirationDate")
     cvv_input = wait_for_element(driver, By.ID, "code")
 
-    set_fields_to_password(driver, card_data.keys())
+    set_fields_to_password(driver, card_data)
     card_number_input.send_keys(CARD_NUM)
     first_name_input.send_keys(FIRST_NAME)
     last_name_input.send_keys(LAST_NAME)
