@@ -8,10 +8,7 @@ from dotenv import load_dotenv
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webdriver import WebElement
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import WebDriverException
 
 
 debugging = True
@@ -65,16 +62,6 @@ def set_field_to_password(driver, element_id):
 def set_fields_to_password(driver, list_of_element_ids):
     for element_id in list_of_element_ids:
         set_field_to_password(driver, element_id)
-
-
-def wait_for_element(driver, by, element_identifier, timeout=10) -> WebElement:
-    try:
-        element_present = EC.presence_of_element_located((by, element_identifier))
-        WebDriverWait(driver, timeout).until(element_present)
-    except TimeoutException:
-        print(f"Timed out waiting for {element_identifier}")
-        return None
-    return driver.find_element(by, element_identifier)
 
 
 def open_website():
