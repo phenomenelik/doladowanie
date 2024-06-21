@@ -4,7 +4,6 @@ from selenium import webdriver
 from dotenv import load_dotenv
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
 from seleniumactions import Actions, FluentFinder, Locator, Using, LocatorExists
 
@@ -53,13 +52,22 @@ actions = Actions(
 )
 
 
-def set_field_to_password(driver, element_id):
+def set_field_to_password(element_id):
     driver.execute_script(f"document.getElementById('{element_id}').type = 'password'")
 
 
-def set_fields_to_password(driver, list_of_element_ids):
+def set_fields_to_password(list_of_element_ids):
     for element_id in list_of_element_ids:
-        set_field_to_password(driver, element_id)
+        set_field_to_password(element_id)
+
+
+def switch_to_iframe(frame_id):
+    iframe_driver = driver.find_element(Using.ID, frame_id)
+    driver.switch_to.frame(iframe_driver)
+
+
+def switch_to_default_content():
+    driver.switch_to.default_content()
 
 
 def open_website():
@@ -74,7 +82,7 @@ def enter_phone_and_email():
     actions.click(accept_cookies_button)
     actions.type_text(phone_number_input, PHONE_NUMBER)
     actions.type_text(email_input, EMAIL)
-    actions.sleep(3)  # loader nr telefonu
+    actions.sleep(2)  # loader nr telefonu
     next_step_button = Locator(Using.ID, "submit-step-1").get_by()
     actions.submit(next_step_button)
 
@@ -102,7 +110,7 @@ def payment_form():
     actions.wait_for(LocatorExists(pay_by_card_radiobutton), timeout="long")
     actions.click(pay_by_card_radiobutton)
 
-    driver.switch_to.frame(driver.find_element(By.ID, 'iframeCards'))
+    switch_to_iframe("iframeCards")
 
     card_number_input = Locator(Using.ID, "cardNumber").get_by()
     first_name_input = Locator(Using.ID, "firstName").get_by()
@@ -110,20 +118,23 @@ def payment_form():
     expiration_date_input = Locator(Using.ID, "expirationDate").get_by()
     cvv_input = Locator(Using.ID, "code").get_by()
 
-    set_fields_to_password(driver, card_data)
+    set_fields_to_password(card_data)
     actions.type_text(card_number_input, CARD_NUM)
     actions.type_text(first_name_input, FIRST_NAME)
     actions.type_text(last_name_input, LAST_NAME)
     actions.type_text(expiration_date_input, CARD_MONTH + CARD_YEAR)
     actions.type_text(cvv_input, CARD_CVV)
 
-    driver.switch_to.default_content()
+    switch_to_default_content()
+
     pay_button = Locator(Using.XPATH, "//span[text()='Płacę']").get_by()
     actions.click(pay_button)
 
 
 def payment_confirmation():
-    actions.wait_for(LocatorExists(Using.ID, "root"), timeout="long")
+    root_element = Locator(Using.ID, "root").get_by()
+    condition = LocatorExists(root_element)
+    actions.wait_for(condition, timeout="long")
 
 
 def send_message():
