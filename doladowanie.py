@@ -1,14 +1,12 @@
 import os
 from pathlib import Path
-
-from seleniumactions import Actions, FluentFinder, Locator, Using, LocatorExists
-
 from selenium import webdriver
 from dotenv import load_dotenv
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
+from seleniumactions import Actions, FluentFinder, Locator, Using, LocatorExists
 
 
 debugging = True
