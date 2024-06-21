@@ -1,15 +1,12 @@
 import os
 from pathlib import Path
-
 from selenium import webdriver
 from dotenv import load_dotenv
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webdriver import WebElement
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import WebDriverException
+from seleniumactions import Actions, FluentFinder, Locator, Using, LocatorExists
 
 
 debugging = True
@@ -35,6 +32,26 @@ if debugging:
 else:
     chrome_options.add_argument("--headless")
 
+service = Service(driver_path)
+driver = webdriver.Chrome(service=service, options=chrome_options)
+
+timeouts = {
+    "short": 2,
+    "medium": 3,
+    "long": 5,
+    "absurd": 10
+}
+finder = FluentFinder(
+    driver,
+    timeouts=timeouts,
+    default_timeout=timeouts["medium"]
+)
+actions = Actions(
+    finder,
+    wait_for_condition_timeout=15,
+    wait_between=0.5
+)
+
 
 def set_field_to_password(driver, element_id):
     driver.execute_script(f"document.getElementById('{element_id}').type = 'password'")
@@ -45,75 +62,68 @@ def set_fields_to_password(driver, list_of_element_ids):
         set_field_to_password(driver, element_id)
 
 
-def wait_for_element(driver, by, element_identifier, timeout=10) -> WebElement:
-    try:
-        element_present = EC.presence_of_element_located((by, element_identifier))
-        WebDriverWait(driver, timeout).until(element_present)
-    except TimeoutException:
-        print(f"Timed out waiting for {element_identifier}")
-        return None
-    return driver.find_element(by, element_identifier)
+def open_website():
+    actions.goto("https://doladowania.t-mobile.pl/doladowanie")
 
 
-def enter_phone_and_email(driver):
-    driver.get("https://doladowania.t-mobile.pl/doladowanie")
+def enter_phone_and_email():
+    accept_cookies_button = Locator(Using.XPATH, "//button[text()[normalize-space()='Akceptuj wszystkie']]").get_by()
+    phone_number_input = Locator(Using.ID, "form-phone-0").get_by()
+    email_input = Locator(Using.ID, "form-email").get_by()
 
-    accept_cookies_button = wait_for_element(driver, By.XPATH, "//button[text()[normalize-space()='Akceptuj wszystkie']]")
-    phone_number_input = wait_for_element(driver, By.ID, "form-phone-0")
-    email_input = wait_for_element(driver, By.ID, "form-email")
-
-    if accept_cookies_button and phone_number_input and email_input:
-
-        accept_cookies_button.click()
-        phone_number_input.send_keys(PHONE_NUMBER)
-        email_input.send_keys(EMAIL)
-
-    next_step_button = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'submit-step-1')))
-    next_step_button.click()
+    actions.click(accept_cookies_button)
+    actions.type_text(phone_number_input, PHONE_NUMBER)
+    actions.type_text(email_input, EMAIL)
+    actions.sleep(3)  # loader nr telefonu
+    next_step_button = Locator(Using.ID, "submit-step-1").get_by()
+    actions.submit(next_step_button)
 
 
-def choose_top_up_amount(driver):
-    top_up_button = wait_for_element(driver, By.XPATH, f"//li[@class='topup-amount topup-{TOP_UP}']")
-    top_up_button.click()
-    next_step_button = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'submit-step-2')))
-    next_step_button.click()
+def choose_top_up_amount():
+    top_up_button = Locator(Using.XPATH, "//li[@class='topup-amount topup-{TOP_UP}']")
+    actions.click(top_up_button.get_by(TOP_UP=TOP_UP))
+
+    next_step_button = Locator(Using.ID, "submit-step-2").get_by()
+    actions.submit(next_step_button)
 
 
-def check_required_consents(driver):
-    terms_and_conditions_checkbox = wait_for_element(driver, By.XPATH, "(//span[@class='check-label-box'])[3]")
-    service_agreement_checkbox = wait_for_element(driver, By.XPATH, "//label[@for='payment']//span")
-    service_agreement_checkbox = wait_for_element(driver, By.XPATH, "//label[@for='payment']//span")
-    submit_button = wait_for_element(driver, By.ID, "submit-step-3")
+def check_required_consents():
+    terms_and_conditions_checkbox = Locator(Using.XPATH, "(//span[@class='check-label-box'])[3]").get_by()
+    service_agreement_checkbox = Locator(Using.XPATH, "//label[@for='payment']//span").get_by()
+    submit_button = Locator(Using.ID, "submit-step-3").get_by()
 
-    terms_and_conditions_checkbox.click()
-    service_agreement_checkbox.click()
-    submit_button.click()
+    actions.click(terms_and_conditions_checkbox)
+    actions.click(service_agreement_checkbox)
+    actions.submit(submit_button)
 
 
-def payment_form(driver):
-    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'payway-radio-CARD')))  # coś nie hula wait_for_element
-    pay_by_card_radiobutton = wait_for_element(driver, By.ID, "payway-radio-CARD")
-    pay_by_card_radiobutton.click()
+def payment_form():
+    pay_by_card_radiobutton = Locator(Using.ID, "payway-radio-CARD").get_by()
+    actions.wait_for(LocatorExists(pay_by_card_radiobutton), timeout="long")
+    actions.click(pay_by_card_radiobutton)
+
     driver.switch_to.frame(driver.find_element(By.ID, 'iframeCards'))
-    card_number_input = wait_for_element(driver, By.ID, "cardNumber")
-    first_name_input = wait_for_element(driver, By.ID, "firstName")
-    last_name_input = wait_for_element(driver, By.ID, "lastName")
-    expiration_date_input = wait_for_element(driver, By.ID, "expirationDate")
-    cvv_input = wait_for_element(driver, By.ID, "code")
+
+    card_number_input = Locator(Using.ID, "cardNumber").get_by()
+    first_name_input = Locator(Using.ID, "firstName").get_by()
+    last_name_input = Locator(Using.ID, "lastName").get_by()
+    expiration_date_input = Locator(Using.ID, "expirationDate").get_by()
+    cvv_input = Locator(Using.ID, "code").get_by()
 
     set_fields_to_password(driver, card_data)
-    card_number_input.send_keys(CARD_NUM)
-    first_name_input.send_keys(FIRST_NAME)
-    last_name_input.send_keys(LAST_NAME)
-    expiration_date_input.send_keys(CARD_MONTH + CARD_YEAR)
-    cvv_input.send_keys(CARD_CVV)
+    actions.type_text(card_number_input, CARD_NUM)
+    actions.type_text(first_name_input, FIRST_NAME)
+    actions.type_text(last_name_input, LAST_NAME)
+    actions.type_text(expiration_date_input, CARD_MONTH + CARD_YEAR)
+    actions.type_text(cvv_input, CARD_CVV)
+
     driver.switch_to.default_content()
-    pay_button = wait_for_element(driver, By.XPATH, "//span[text()='Płacę']")
-    pay_button.click()
+    pay_button = Locator(Using.XPATH, "//span[text()='Płacę']").get_by()
+    actions.click(pay_button)
 
 
-def payment_confirmation(driver):
-    wait_for_element(driver, By.ID, "root", 10)
+def payment_confirmation():
+    actions.wait_for(LocatorExists(Using.ID, "root"), timeout="long")
 
 
 def send_message():
@@ -121,15 +131,14 @@ def send_message():
 
 
 def main():
-    service = Service(driver_path)
-    driver = webdriver.Chrome(service=service, options=chrome_options)
 
     try:
-        enter_phone_and_email(driver)
-        choose_top_up_amount(driver)
-        check_required_consents(driver)
-        payment_form(driver)
-        payment_confirmation(driver)
+        open_website()
+        enter_phone_and_email()
+        choose_top_up_amount()
+        check_required_consents()
+        payment_form()
+        payment_confirmation()
     except WebDriverException as e:
         print(f"General webdriver error {e}")
     finally:
