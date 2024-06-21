@@ -53,7 +53,7 @@ actions = Actions(
 
 
 def set_field_to_password(element_id):
-    driver.execute_script(f"document.getElementById('{element_id}').type = 'password'")
+    actions.execute_js(f"document.getElementById('{element_id}').type = 'password'")
 
 
 def set_fields_to_password(list_of_element_ids):
